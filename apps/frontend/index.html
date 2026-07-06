@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scenario Workbench Demo</title>
+    <link rel="stylesheet" href="./src/demo/styles.css?v=20260705-agnostic" />
+  </head>
+  <body>
+    <div id="app" class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">SW</div>
+          <div>
+            <h1>Scenario Workbench</h1>
+            <p>Market Risk Demo</p>
+          </div>
+        </div>
+        <nav class="nav">
+          <button class="nav-item active" data-view="dashboard">Portfolio</button>
+          <button class="nav-item" data-view="scenario">Scenario Builder</button>
+          <button class="nav-item" data-view="impact">Stress Impact</button>
+          <button class="nav-item" data-view="compare">Compare</button>
+          <button class="nav-item" data-view="report">Report</button>
+        </nav>
+        <div class="sidebar-meta">
+          <span>Environment</span>
+          <strong>Mock Demo</strong>
+          <span>LLM Gateway</span>
+          <strong id="llmProviderLabel">LLMService / OpenRouter</strong>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Global Market Risk</p>
+            <h2 id="viewTitle">Portfolio Dashboard</h2>
+          </div>
+          <div class="topbar-actions">
+            <span class="help-wrap"><input id="globalSearch" type="search" placeholder="Search trades, desks, traders, counterparties" /><button class="help-dot" type="button" aria-label="Search help">?</button><span class="tooltip">Search filters the visible portfolio inventory and dashboard aggregations.</span></span>
+            <span class="help-wrap"><select id="deskFilter" aria-label="Desk filter"></select><button class="help-dot" type="button" aria-label="Desk filter help">?</button><span class="tooltip">Restrict portfolio views to one business desk.</span></span>
+            <span class="help-wrap"><button id="exportReportBtn" class="primary">Export Report</button><button class="help-dot" type="button" aria-label="Export help">?</button><span class="tooltip">Exports the confirmed scenario, shocks and stress results as a mock JSON report.</span></span>
+          </div>
+        </header>
+
+        <section id="dashboardView" class="view active">
+          <div class="kpi-grid" id="kpiGrid"></div>
+          <div class="content-grid">
+            <section class="panel span-8">
+              <div class="panel-header">
+                <h3>Desk Exposure and PnL <span class="help-wrap"><button class="help-dot" type="button" aria-label="Desk exposure help">?</button><span class="tooltip">Current MTM aggregated by trading desk before scenario stress.</span></span></h3>
+                <span id="tradeCountLabel"></span>
+              </div>
+              <div id="deskBars" class="bar-list"></div>
+            </section>
+            <section class="panel span-4">
+              <div class="panel-header">
+                <h3>Commodity Breakdown <span class="help-wrap"><button class="help-dot" type="button" aria-label="Commodity breakdown help">?</button><span class="tooltip">Absolute MTM exposure grouped by commodity family.</span></span></h3>
+              </div>
+              <div id="commodityDonut" class="donut-wrap"></div>
+            </section>
+            <section class="panel span-6">
+              <div class="panel-header">
+                <h3>Largest Positions <span class="help-wrap"><button class="help-dot" type="button" aria-label="Largest positions help">?</button><span class="tooltip">Trades with the largest absolute current MTM.</span></span></h3>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>Trade</th><th>Desk</th><th>Trader</th><th>Instrument</th><th class="num">MTM</th></tr>
+                  </thead>
+                  <tbody id="largestPositions"></tbody>
+                </table>
+              </div>
+            </section>
+            <section class="panel span-6">
+              <div class="panel-header">
+                <h3>Top Counterparties <span class="help-wrap"><button class="help-dot" type="button" aria-label="Counterparty help">?</button><span class="tooltip">Counterparty concentration by trade count, MTM and delta.</span></span></h3>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>Counterparty</th><th>Trades</th><th class="num">MTM</th><th class="num">Delta</th></tr>
+                  </thead>
+                  <tbody id="counterpartyTable"></tbody>
+                </table>
+              </div>
+            </section>
+            <section class="panel span-12">
+              <div class="panel-header">
+                <h3>Position Inventory <span class="help-wrap"><button class="help-dot" type="button" aria-label="Position inventory help">?</button><span class="tooltip">Mock trade inventory used as the stress test exposure base.</span></span></h3>
+                <span>Mock portfolio generated deterministically</span>
+              </div>
+              <div class="table-wrap tall">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Trade ID</th><th>Book</th><th>Desk</th><th>Trader</th><th>Counterparty</th>
+                      <th>Instrument</th><th>Tenor</th><th class="num">Volume</th><th class="num">Price</th>
+                      <th class="num">MTM</th><th class="num">Delta</th><th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tradeTable"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="scenarioView" class="view">
+          <div class="scenario-layout">
+            <section class="panel scenario-input">
+              <div class="panel-header">
+                <h3>Scenario Request <span class="help-wrap"><button class="help-dot" type="button" aria-label="Scenario request help">?</button><span class="tooltip">Describe the market event. The LLM turns this into questions, assumptions and shocks.</span></span></h3>
+                <span>Structured through LLMService mock provider</span>
+              </div>
+              <textarea id="scenarioPrompt" placeholder="Describe a stress scenario, e.g. escalation in the Strait of Hormuz, European gas supply shock, recession-driven demand collapse..."></textarea>
+              <div class="form-row">
+                <label>Severity <span class="help-wrap"><button class="help-dot" type="button" aria-label="Severity help">?</button><span class="tooltip">Controls how severe the generated stress assumptions should be.</span></span>
+                  <select id="severitySelect">
+                    <option>Moderate</option>
+                    <option selected>Severe</option>
+                    <option>Extreme</option>
+                  </select>
+                </label>
+                <label>Horizon <span class="help-wrap"><button class="help-dot" type="button" aria-label="Horizon help">?</button><span class="tooltip">Time window the scenario should represent.</span></span>
+                  <select id="horizonSelect">
+                    <option>1 week</option>
+                    <option selected>1 month</option>
+                    <option>3 months</option>
+                  </select>
+                </label>
+              </div>
+              <span class="help-wrap wide-help"><button id="generateScenarioBtn" class="primary full">Generate Draft Questions</button><button class="help-dot" type="button" aria-label="Generate help">?</button><span class="tooltip">Creates a draft scenario and clarification questions from your text.</span></span>
+              <span class="help-wrap wide-help"><button id="finalizeScenarioBtn" class="primary full">Validate Answers & Generate Shocks</button><button class="help-dot" type="button" aria-label="Finalize help">?</button><span class="tooltip">Uses your answers, skipped questions and edited assumptions to generate final shocks.</span></span>
+              <span class="help-wrap wide-help"><button id="enrichScenarioBtn" class="full">Enrich With Web Research</button><button class="help-dot" type="button" aria-label="Web research help">?</button><span class="tooltip">Adds current web-grounded historical analogues through OpenRouter web search.</span></span>
+              <span class="help-wrap wide-help"><button id="confirmScenarioBtn" class="primary full">Confirm Scenario & Run Stress</button><button class="help-dot" type="button" aria-label="Confirm help">?</button><span class="tooltip">Available after final shocks are generated. It freezes the reviewed scenario and runs stress.</span></span>
+              <div class="audit-note">
+                Workflow: generate draft questions, answer or skip them, validate answers to generate shocks, then confirm scenario to run stress.
+              </div>
+            </section>
+            <section class="panel">
+              <div class="panel-header">
+                <h3>Clarification Questions <span class="help-wrap"><button class="help-dot" type="button" aria-label="Questions help">?</button><span class="tooltip">Answer or skip questions before generating final shocks. These answers are sent back to the LLM.</span></span></h3>
+                <button id="skipAllQuestionsBtn">Skip All</button>
+              </div>
+              <ol id="questionList" class="question-list"></ol>
+            </section>
+            <section class="panel span-wide">
+              <div class="panel-header">
+                <h3>Assumptions <span class="help-wrap"><button class="help-dot" type="button" aria-label="Assumptions help">?</button><span class="tooltip">Editable scenario assumptions. Use Yes/No for binary assumptions and Value for thresholds or levels.</span></span></h3>
+                <button id="addAssumptionBtn">Add Assumption</button>
+              </div>
+              <div id="assumptionList" class="editable-list"></div>
+            </section>
+            <section class="panel span-wide">
+              <div class="panel-header">
+                <h3>Historical Analogues <span class="help-wrap"><button class="help-dot" type="button" aria-label="Historical analogues help">?</button><span class="tooltip">Comparable market events used to support or challenge the scenario design.</span></span></h3>
+                <span id="researchStatus">Mock research loaded</span>
+              </div>
+              <div id="historicalEvents" class="event-grid"></div>
+            </section>
+            <section class="panel span-wide">
+              <div class="panel-header">
+                <h3>Shock Editor <span class="help-wrap"><button class="help-dot" type="button" aria-label="Shock editor help">?</button><span class="tooltip">Review and override each generated market shock before running stress.</span></span></h3>
+                <span>All shocks editable before execution</span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Risk Factor</th><th>AI Value</th><th>User Value</th><th>Difference</th><th>Confidence</th><th>Reason</th><th>Override</th>
+                    </tr>
+                  </thead>
+                  <tbody id="shockTable"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="impactView" class="view">
+          <div class="kpi-grid" id="impactKpis"></div>
+          <div class="content-grid">
+            <section class="panel span-7">
+              <div class="panel-header"><h3>Desk Stress PnL <span class="help-wrap"><button class="help-dot" type="button" aria-label="Desk stress help">?</button><span class="tooltip">Scenario PnL aggregated by desk using mapped risk factor sensitivities.</span></span></h3><span id="activeScenarioLabel"></span></div>
+              <div id="stressBars" class="bar-list"></div>
+            </section>
+            <section class="panel span-5">
+              <div class="panel-header"><h3>Risk Factor Heatmap <span class="help-wrap"><button class="help-dot" type="button" aria-label="Heatmap help">?</button><span class="tooltip">Magnitude and direction of confirmed shocks by risk factor.</span></span></h3></div>
+              <div id="riskHeatmap" class="heatmap"></div>
+            </section>
+            <section class="panel span-6">
+              <div class="panel-header"><h3>Risk Factor PnL Attribution <span class="help-wrap"><button class="help-dot" type="button" aria-label="Attribution help">?</button><span class="tooltip">Approximate contribution of each risk factor to total stress PnL.</span></span></h3><span>Shock x mapped delta</span></div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>Risk Factor</th><th class="num">Shock</th><th class="num">Stress PnL</th><th class="num">Trades</th></tr>
+                  </thead>
+                  <tbody id="factorAttributionTable"></tbody>
+                </table>
+              </div>
+            </section>
+            <section class="panel span-6">
+              <div class="panel-header"><h3>Trader Impact <span class="help-wrap"><button class="help-dot" type="button" aria-label="Trader impact help">?</button><span class="tooltip">Worst impacted traders for review and explanation.</span></span></h3><span>Worst analyst review queue</span></div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>Trader</th><th>Desk</th><th class="num">Stress PnL</th><th class="num">Trades</th></tr>
+                  </thead>
+                  <tbody id="traderImpactTable"></tbody>
+                </table>
+              </div>
+            </section>
+            <section class="panel span-12">
+              <div class="panel-header"><h3>Worst Positions <span class="help-wrap"><button class="help-dot" type="button" aria-label="Worst positions help">?</button><span class="tooltip">Individual trades with the largest scenario losses.</span></span></h3><span>Deterministic sensitivity-based mock engine</span></div>
+              <div class="table-wrap tall">
+                <table>
+                  <thead>
+                    <tr><th>Trade</th><th>Desk</th><th>Trader</th><th>Instrument</th><th>Risk Factors</th><th class="num">Base MTM</th><th class="num">Stress PnL</th></tr>
+                  </thead>
+                  <tbody id="worstPositions"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section id="compareView" class="view">
+          <div class="content-grid">
+            <section class="panel span-12">
+              <div class="panel-header"><h3>Scenario Comparison <span class="help-wrap"><button class="help-dot" type="button" aria-label="Comparison help">?</button><span class="tooltip">Compares the confirmed scenario across scaled severity variants.</span></span></h3><span>Base, moderate, severe and extreme variants</span></div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr><th>Scenario</th><th class="num">Portfolio PnL</th><th class="num">% MTM</th><th class="num">Crude</th><th class="num">Gas</th><th class="num">Power</th><th class="num">Freight</th><th>Worst Desk</th><th>Key Driver</th></tr>
+                  </thead>
+                  <tbody id="comparisonTable"></tbody>
+                </table>
+              </div>
+            </section>
+            <section class="panel span-12">
+              <div class="panel-header"><h3>Desk Impact Matrix <span class="help-wrap"><button class="help-dot" type="button" aria-label="Desk matrix help">?</button><span class="tooltip">Desk-level losses and gains across scenario variants.</span></span></h3></div>
+              <div id="comparisonHeatmap" class="matrix"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="reportView" class="view">
+          <section class="report" id="reportContent">
+            <div class="report-header">
+              <div>
+                <p class="eyebrow">Risk Committee Pack</p>
+                <h2>Energy Supply Escalation Stress</h2>
+                <p>Global trading portfolio - mock executive report</p>
+              </div>
+              <div class="report-stamp">DRAFT</div>
+            </div>
+            <div id="reportSummary" class="report-grid"></div>
+            <div class="report-section">
+              <h3>Scenario Summary</h3>
+              <p id="reportScenarioText"></p>
+            </div>
+            <div class="report-section">
+              <h3>Assumptions</h3>
+              <div id="reportAssumptions"></div>
+            </div>
+            <div class="report-section">
+              <h3>Assumptions and Shocks</h3>
+              <div id="reportShocks"></div>
+            </div>
+            <div class="report-section">
+              <h3>Desk and Trader Impact</h3>
+              <div id="reportDeskTrader"></div>
+            </div>
+            <div class="report-section">
+              <h3>Top Risks</h3>
+              <div id="reportRisks"></div>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+    <script src="./src/demo/app.js?v=20260705-agnostic"></script>
+  </body>
+</html>

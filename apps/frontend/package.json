@@ -1,0 +1,12 @@
+{
+  "name": "@scenario-workbench/frontend",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Placeholder for the future Scenario Workbench React application.",
+  "scripts": {
+    "demo": "echo \"Open apps/frontend/index.html in a browser\"",
+    "lint": "echo \"No frontend lint target yet\"",
+    "test": "echo \"No frontend tests yet\"",
+    "build": "echo \"No frontend build yet\""
+  }
+}

@@ -1,0 +1,9 @@
+# Placeholder ownership model. Replace teams with internal groups when available.
+* @scenario-workbench/maintainers
+
+/docs/security/ @scenario-workbench/security
+/infra/ @scenario-workbench/platform
+/apps/backend/ @scenario-workbench/backend
+/apps/frontend/ @scenario-workbench/frontend
+/modules/ @scenario-workbench/product-risk
+
