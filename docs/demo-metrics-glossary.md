@@ -369,6 +369,69 @@ Portfolio stress PnL is:
 portfolio stress pnl = sum(trade stress pnl)
 ```
 
+## How To Read The Stress Test
+
+Start with the stress test as a loss-explanation workflow, not as one isolated number. The goal is to answer five questions:
+
+1. How big is the total portfolio impact?
+2. Is that impact large relative to current MTM?
+3. Which desk or commodity explains the loss?
+4. Which market factor caused the loss?
+5. Which trades or traders need review?
+
+Read the Stress Impact screen in this order:
+
+1. **Portfolio Stress PnL**: the headline gain or loss from the confirmed scenario.
+2. **Stress / MTM**: the stress impact compared with current portfolio value.
+3. **Worst Desk**: the first desk to review because it has the largest loss.
+4. **Desk Stress PnL**: whether the loss is concentrated or spread across desks.
+5. **Risk Factor Heatmap**: which shocks were applied and how large they were.
+6. **Risk Factor PnL Attribution**: which shocks actually created PnL.
+7. **Trader Impact**: which trader books need follow-up.
+8. **Worst Positions**: the individual trades driving the largest losses.
+9. **Scenario Comparison**: whether Base, Moderate, Severe, and Extreme scale logically.
+10. **Report**: the committee-style package of scenario, assumptions, shocks, and impact.
+
+The most important distinction is this:
+
+- The heatmap answers, "What shocks did we apply?"
+- The PnL attribution answers, "Which shocks mattered financially?"
+
+A large shock may have little PnL if the portfolio has little mapped exposure to that factor. A smaller shock can create a large PnL if many trades have large delta to that factor.
+
+## What Good Stress Test Interpretation Looks Like
+
+A coherent explanation connects scenario, shock, exposure, and PnL:
+
+```text
+scenario assumption
+  -> generated shock
+  -> mapped risk factor
+  -> exposed trades
+  -> desk/trader/factor PnL
+```
+
+Example:
+
+```text
+freight disruption
+  -> Freight shock +28%
+  -> Freight risk factor
+  -> freight swaps, LNG carrier exposure, physical cargo exposure
+  -> Freight desk and LNG desk stress PnL
+```
+
+When reviewing the output, look for:
+
+- concentration: one desk, trader, counterparty, commodity, or factor dominates the loss
+- diversification: some books lose while others gain, reducing total loss
+- hedge behavior: a position gains when another position loses because its delta has the opposite sign
+- nonlinear proxy risk: trades with multiple mapped factors receive a larger transmission multiplier in the demo
+- override sensitivity: user-edited shocks change final PnL and are counted as overrides
+- scenario scaling: Moderate, Severe, and Extreme variants should generally move in the expected direction
+
+Do not only look at the biggest portfolio number. A smaller total loss can still hide a dangerous concentration if one desk or trade loses heavily while other gains offset it.
+
 ## Stress Impact Screen Metrics
 
 **Portfolio Stress PnL**
@@ -378,6 +441,12 @@ The total scenario gain or loss across all trades.
 ```text
 portfolio stress pnl = sum(trade stress pnl)
 ```
+
+What to look at:
+
+- sign: negative is a loss, positive is a gain
+- size: larger absolute values mean a bigger stress impact
+- explanation: the total should be traceable to desk and risk factor attribution
 
 **Stress / MTM**
 
@@ -390,6 +459,12 @@ stress / mtm =
 
 The `max(..., 1)` prevents division by zero.
 
+What to look at:
+
+- whether the stress is material relative to current portfolio value
+- whether the percentage is driven by a large loss or by a small MTM denominator
+- whether the percentage increases logically in Moderate, Severe, and Extreme variants
+
 **Worst Desk**
 
 The desk with the lowest stress PnL.
@@ -400,6 +475,12 @@ worst desk = desk with minimum sum(trade stress pnl)
 
 Lowest means the largest loss.
 
+What to look at:
+
+- the first desk risk management should review
+- whether the worst desk matches the scenario story
+- whether one desk dominates the total portfolio loss
+
 **Worst Trade**
 
 The trade with the lowest stress PnL.
@@ -407,6 +488,12 @@ The trade with the lowest stress PnL.
 ```text
 worst trade = trade with minimum trade stress pnl
 ```
+
+What to look at:
+
+- single-position concentration
+- whether the instrument's mapped risk factors explain the loss
+- whether this trade should be challenged, hedged, or excluded in a real workflow
 
 **Shock Overrides**
 
@@ -417,6 +504,12 @@ shock overrides =
   count(abs(user value - ai value) > 0.01)
 ```
 
+What to look at:
+
+- governance: how much human adjustment happened after AI generation
+- auditability: overridden shocks should have a clear review reason
+- sensitivity: if one override changes the result heavily, that factor is important
+
 **Desk Stress PnL**
 
 Stress PnL grouped by desk.
@@ -425,6 +518,12 @@ Stress PnL grouped by desk.
 desk stress pnl =
   sum(trade stress pnl for trades on that desk)
 ```
+
+What to look at:
+
+- concentration by business line
+- hedging or offsetting behavior between desks
+- whether desk results match the scenario transmission story
 
 **Risk Factor Heatmap**
 
@@ -439,6 +538,12 @@ Intensity is:
 intensity = min(100, abs(user shock value) x 3)
 ```
 
+What to look at:
+
+- which market variables were shocked
+- which shocks are positive or negative
+- whether shock direction is plausible for the scenario
+
 **Risk Factor PnL Attribution**
 
 Stress PnL grouped by risk factor.
@@ -449,6 +554,12 @@ risk factor pnl =
 ```
 
 Trade count is the number of trades mapped to that factor.
+
+What to look at:
+
+- the true financial drivers of the stress result
+- whether the largest PnL factors match the largest scenario shocks
+- whether many small exposures or a few large exposures explain the factor PnL
 
 **Trader Impact**
 
@@ -461,6 +572,12 @@ trader stress pnl =
 
 The table shows the worst 12 trader rows.
 
+What to look at:
+
+- which traders own the most affected books
+- where follow-up questions should go
+- whether losses are concentrated with one trader or spread across the desk
+
 **Worst Positions**
 
 The 25 trades with the lowest stress PnL.
@@ -468,6 +585,12 @@ The 25 trades with the lowest stress PnL.
 ```text
 worst positions = bottom 25 trades sorted by trade stress pnl
 ```
+
+What to look at:
+
+- the exact instruments causing losses
+- their base MTM compared with stress PnL
+- their mapped risk factors, because those explain why the stress hit them
 
 ## Scenario Comparison Metrics
 
@@ -492,12 +615,24 @@ Then the stress engine reruns with those variant shocks.
 
 The total stress PnL for the variant.
 
+What to look at:
+
+- whether losses grow as severity increases
+- whether Base is close to zero because its multiplier is zero in the demo
+- whether a variant flips from gain to loss, which can reveal hedging or sign effects
+
 **% MTM**
 
 ```text
 variant % mtm =
   variant portfolio pnl / max(abs(portfolio mtm), 1) x 100
 ```
+
+What to look at:
+
+- relative severity across variants
+- whether the result is material compared with the current marked portfolio value
+- whether a small percentage hides a large desk-level concentration
 
 **Crude, Gas, Power, Freight**
 
@@ -508,9 +643,21 @@ commodity stress pnl =
   sum(trade stress pnl for trades in commodity)
 ```
 
+What to look at:
+
+- which industry or commodity family carries the scenario loss
+- whether the affected commodity matches the scenario narrative
+- whether a cross-commodity effect appears, such as gas shocks flowing into power
+
 **Worst Desk**
 
 The desk with the largest loss under the variant.
+
+What to look at:
+
+- whether the same desk remains worst as severity increases
+- whether a different desk becomes worst under Extreme conditions
+- whether desk-level ranking is stable enough to explain
 
 **Key Driver**
 
@@ -521,6 +668,12 @@ key driver =
   factor with max(abs(risk factor pnl))
 ```
 
+What to look at:
+
+- the single most important risk factor for the variant
+- whether the driver changes as severity changes
+- whether the driver is intuitive given the scenario shocks
+
 **Desk Impact Matrix**
 
 Desk-level stress PnL across Base, Moderate, Severe, and Extreme. Cell color intensity is:
@@ -528,6 +681,12 @@ Desk-level stress PnL across Base, Moderate, Severe, and Extreme. Cell color int
 ```text
 shade = min(0.9, abs(desk variant pnl) / 6000000)
 ```
+
+What to look at:
+
+- where losses deepen from Moderate to Severe to Extreme
+- which desks are resilient across all variants
+- whether any desk gains consistently because it is naturally hedged or positioned in the opposite direction
 
 ## Report Metrics
 
@@ -551,6 +710,14 @@ average confidence =
 ```
 
 The exported JSON contains the company name, generation timestamp, active scenario, total impact, worst desk, and top 20 worst positions.
+
+What to look at in the report:
+
+- whether the scenario summary matches the shocks that were approved
+- whether assumptions are explicit enough for another analyst to reproduce the setup
+- whether the largest losses are explained by desk, trader, factor, and position tables
+- whether average confidence is treated as a scenario construction signal, not as proof that the PnL is correct
+- whether overrides are present and can be defended in review
 
 ## Why The Demo Is Coherent
 
