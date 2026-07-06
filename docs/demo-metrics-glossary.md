@@ -274,6 +274,11 @@ Editable statements about what the scenario believes. Each assumption has:
 
 If assumptions or question answers change after final shocks are generated, the demo invalidates the final shocks and requires regeneration.
 
+The assumption editor separates the input shape from the recorded answer:
+
+- Input type says what kind of answer the assumption expects: text, Boolean, or level/value.
+- Recorded value is the actual answer stored for that assumption, such as Yes, No, High, 1 month, or a written note.
+
 **Historical Analogues**
 
 Past events used as directional comparisons. Examples include Russia 2022, COVID Oil Crash, Abqaiq Attack, Suez Canal Blockage, European Gas Crisis, and Texas Freeze.
@@ -566,4 +571,3 @@ This means:
 - A carbon shock flows into carbon and fuel-switching exposure.
 
 The numbers are not official, but the relationships are intentionally realistic enough to demonstrate how a governed market risk workflow should behave.
-

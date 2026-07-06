@@ -365,7 +365,7 @@ function renderScenario() {
       renderScenario();
     });
   });
-  document.getElementById("assumptionList").innerHTML = s.assumptions.map((a, i) => `<div class="assumption"><input data-assumption-text="${i}" value="${a.text || ""}" placeholder="Assumption" /><select data-assumption-type="${i}"><option value="text" ${a.type === "text" ? "selected" : ""}>Text</option><option value="yes_no" ${a.type === "yes_no" ? "selected" : ""}>Yes/No</option><option value="value" ${a.type === "value" ? "selected" : ""}>Value</option></select>${assumptionValueControl(a, i)}<span><span class="pill">${a.owner}</span> ${Math.round(a.confidence * 100)}%</span><button data-assumption-remove="${i}">Remove</button></div>`).join("");
+  document.getElementById("assumptionList").innerHTML = `<div class="assumption assumption-header"><span>Assumption</span><span>Input type</span><span>Recorded value</span><span>Source</span><span></span></div>${s.assumptions.map((a, i) => `<div class="assumption"><input data-assumption-text="${i}" value="${a.text || ""}" placeholder="Assumption" aria-label="Assumption text" /><select data-assumption-type="${i}" aria-label="Assumption input type"><option value="text" ${a.type === "text" ? "selected" : ""}>Text</option><option value="yes_no" ${a.type === "yes_no" ? "selected" : ""}>Boolean</option><option value="value" ${a.type === "value" ? "selected" : ""}>Level</option></select>${assumptionValueControl(a, i)}<span><span class="pill">${a.owner}</span> ${Math.round(a.confidence * 100)}%</span><button data-assumption-remove="${i}">Remove</button></div>`).join("")}`;
   document.querySelectorAll("[data-assumption-text]").forEach((input) => {
     input.addEventListener("change", (event) => {
       const item = s.assumptions[Number(event.target.dataset.assumptionText)];
@@ -430,12 +430,12 @@ function renderScenario() {
 
 function assumptionValueControl(assumption, index) {
   if (assumption.type === "yes_no") {
-    return `<select data-assumption-value="${index}"><option ${assumption.value === "Yes" ? "selected" : ""}>Yes</option><option ${assumption.value === "No" ? "selected" : ""}>No</option></select>`;
+    return `<select data-assumption-value="${index}" aria-label="Assumption recorded value"><option ${assumption.value === "Yes" ? "selected" : ""}>Yes</option><option ${assumption.value === "No" ? "selected" : ""}>No</option></select>`;
   }
   if (assumption.type === "value") {
-    return `<input data-assumption-value="${index}" value="${assumption.value || ""}" placeholder="Value / level / threshold" />`;
+    return `<input data-assumption-value="${index}" value="${assumption.value || ""}" placeholder="Value / level / threshold" aria-label="Assumption recorded value" />`;
   }
-  return `<input data-assumption-value="${index}" value="${assumption.value || ""}" placeholder="Optional note" />`;
+  return `<input data-assumption-value="${index}" value="${assumption.value || ""}" placeholder="Optional note" aria-label="Assumption recorded value" />`;
 }
 
 function emptyState(message) {
@@ -469,13 +469,16 @@ function runStress() {
 function confirmScenario() {
   if (!state.activeScenario || !state.scenarioFinalized) return;
   const button = document.getElementById("confirmScenarioBtn");
+  const previousText = button.textContent;
   button.disabled = true;
   button.classList.add("loading");
+  button.textContent = "Running Stress...";
   state.scenarioConfirmed = true;
   runStress();
   window.setTimeout(() => {
     button.classList.remove("loading");
     button.disabled = false;
+    button.textContent = previousText;
     setView("impact");
   }, 350);
 }
@@ -721,8 +724,10 @@ function exportReport() {
 async function enrichScenarioWithWeb() {
   const button = document.getElementById("enrichScenarioBtn");
   const status = document.getElementById("researchStatus");
+  const previousText = button.textContent;
   button.disabled = true;
   button.classList.add("loading");
+  button.textContent = "Researching...";
   status.textContent = "Calling OpenRouter web search...";
   try {
     const response = await fetch("/api/research-scenario", {
@@ -744,6 +749,7 @@ async function enrichScenarioWithWeb() {
   } finally {
     button.disabled = false;
     button.classList.remove("loading");
+    button.textContent = previousText;
   }
 }
 
@@ -759,7 +765,7 @@ async function generateScenarioFromLLM() {
   }
   button.disabled = true;
   button.classList.add("loading");
-  button.textContent = "Generating Draft...";
+  button.textContent = "Generating...";
   status.textContent = "Generating scenario with OpenRouter...";
   let finalStatus = "";
   try {
@@ -797,6 +803,7 @@ async function finalizeScenarioFromAnswers() {
   const horizon = document.getElementById("horizonSelect").value;
   button.disabled = true;
   button.classList.add("loading");
+  button.textContent = "Generating Shocks...";
   status.textContent = "Validating answers and generating final shocks...";
   let finalStatus = "";
   try {
@@ -832,6 +839,7 @@ async function finalizeScenarioFromAnswers() {
     if (finalStatus) status.textContent = finalStatus;
     button.disabled = false;
     button.classList.remove("loading");
+    button.textContent = state.scenarioFinalized ? "Regenerate Final Shocks" : "Validate Answers & Generate Shocks";
   }
 }
 
